@@ -18,6 +18,7 @@ def is_valid_image_url(url):
         return False
     return False
 
+# Image to Text Function
 def img2text_url(image_url):
     API_URL = "https://api-inference.huggingface.co/models/Salesforce/blip-image-captioning-large"
     headers = {"Authorization": f"Bearer {os.getenv('HUGGINGFACEHUB_API_TOKEN')}"}
@@ -29,6 +30,7 @@ def img2text_url(image_url):
     else:
         return f"Error: {response.status_code}, {response.json()}"
 
+# Generate Story Function
 def generate_story(scenario):
     template = """
     You are a story teller;
@@ -37,12 +39,23 @@ def generate_story(scenario):
     STORY:
     """
     prompt = PromptTemplate(template=template, input_variables=["scenario"])
-    story_llm = LLMChain(
-        llm=HuggingFaceHub(repo_id="deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B",
-                        model_kwargs={"temperature":1, "max_length":512}),
-        prompt=prompt
-    )
-    story = story_llm.predict(scenario=scenario)
+    
+    try:
+        story_llm = LLMChain(
+            llm=HuggingFaceHub(repo_id="deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B", 
+                               model_kwargs={"temperature":1, "max_length":512}), 
+            prompt=prompt
+        )
+        story = story_llm.predict(scenario=scenario)
+    except Exception as e:
+        print(f"DeepSeek model failed: {e}, switching to Falcon-7B-Instruct...")
+        story_llm = LLMChain(
+            llm=HuggingFaceHub(repo_id="tiiuae/falcon-7b-instruct", 
+                               model_kwargs={"temperature":1, "max_length":512}), 
+            prompt=prompt
+        )
+        story = story_llm.predict(scenario=scenario)
+    
     return story.split('\n')[-1].strip()
 
 # Text to Speech Function
@@ -50,7 +63,7 @@ def text2speech(message):
     API_URL = "https://api-inference.huggingface.co/models/espnet/kan-bayashi_ljspeech_vits"
     headers = {"Authorization": f"Bearer {os.getenv('HUGGINGFACEHUB_API_TOKEN')}"}
     payload = {'inputs': message}
-
+    
     response = requests.post(API_URL, headers=headers, json=payload)
     if response.status_code == 200:
         with open("audio.flac", "wb") as file:
@@ -63,33 +76,33 @@ def text2speech(message):
 def main():
     st.set_page_config(page_title="AI-Powered Story Generator", layout="centered")
     st.title("AI Story Generator from Image URL")
-
+    
     image_url = st.text_input("Enter Image URL")
-
+    
     if image_url:
         if is_valid_image_url(image_url):
             st.image(image_url, caption="Uploaded Image", use_column_width=True)
-
+            
             progress = st.progress(0)
             progress.progress(25)
             caption = img2text_url(image_url)
             st.success("Image caption generated successfully!")
             progress.progress(50)
-
+            
             story = generate_story(caption)
             st.success("Story generated successfully!")
             progress.progress(75)
-
+            
             audio_file = text2speech(story)
             st.success("Audio generated successfully!")
             progress.progress(100)
-
+            
             with st.expander("See Image Caption"):
                 st.write(caption)
-
+            
             with st.expander("Read Generated Story"):
                 st.write(story)
-
+            
             if audio_file:
                 with st.expander("Listen to the Story"):
                     st.audio(audio_file, format="audio/flac")
