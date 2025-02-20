@@ -81,7 +81,7 @@ def main():
     
     if image_url:
         if is_valid_image_url(image_url):
-            st.image(image_url, caption="Uploaded Image", use_column_width=True)
+            st.image(image_url, caption="Uploaded Image", use_container_width =True)
             
             progress = st.progress(0)
             progress.progress(25)
