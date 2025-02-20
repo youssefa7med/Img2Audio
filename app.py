@@ -43,6 +43,7 @@ def generate_story(scenario):
     prompt = PromptTemplate(template=template, input_variables=["scenario"])
     
     models = [
+        "HuggingFaceH4/zephyr-7b-beta",  # Lightweight model
         "deepseek-ai/DeepSeek-R1",
         "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B"
     ]
