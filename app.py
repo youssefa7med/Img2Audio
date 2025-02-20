@@ -2,7 +2,7 @@ import requests
 import os
 import streamlit as st
 from transformers import pipeline
-from langchain.llms import HuggingFaceHub
+from langchain_community.llms import HuggingFaceHub
 from langchain import PromptTemplate, LLMChain
 from dotenv import load_dotenv
 import time
