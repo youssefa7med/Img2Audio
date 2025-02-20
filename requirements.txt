@@ -1,0 +1,5 @@
+transformers==4.50.0.dev0
+langchain==0.3.19
+requests==2.32.3
+huggingface_hub==0.28.1
+streamlit
