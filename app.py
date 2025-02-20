@@ -42,15 +42,15 @@ def generate_story(scenario):
     
     try:
         story_llm = LLMChain(
-            llm=HuggingFaceHub(repo_id="deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B", 
+            llm=HuggingFaceHub(repo_id="deepseek-ai/DeepSeek-R1", 
                                model_kwargs={"temperature":1, "max_length":512}), 
             prompt=prompt
         )
         story = story_llm.predict(scenario=scenario)
     except Exception as e:
-        print(f"DeepSeek model failed: {e}, switching to Falcon-7B-Instruct...")
+        print(f"DeepSeek model failed: {e}, switching to deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B...")
         story_llm = LLMChain(
-            llm=HuggingFaceHub(repo_id="tiiuae/falcon-7b-instruct", 
+            llm=HuggingFaceHub(repo_id="deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B", 
                                model_kwargs={"temperature":1, "max_length":512}), 
             prompt=prompt
         )
