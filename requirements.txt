@@ -1,5 +1,6 @@
+requests==2.32.3
+streamlit==1.30.0
 transformers==4.50.0.dev0
 langchain==0.3.19
-requests==2.32.3
 huggingface_hub==0.28.1
-streamlit
+python-dotenv==1.0.1
