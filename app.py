@@ -5,6 +5,7 @@ from transformers import pipeline
 from langchain.llms import HuggingFaceHub
 from langchain import PromptTemplate, LLMChain
 from dotenv import load_dotenv
+import time
 
 # Load environment variables
 load_dotenv()
@@ -41,26 +42,27 @@ def generate_story(scenario):
     """
     prompt = PromptTemplate(template=template, input_variables=["scenario"])
     
-    try:
-        story_llm = LLMChain(
-            llm=HuggingFaceHub(repo_id="deepseek-ai/DeepSeek-R1", 
-                               model_kwargs={"temperature":1, "max_length":512}), 
-            prompt=prompt
-        )
-        story = story_llm.predict(scenario=scenario)
-    except Exception as e:
-        print(f"DeepSeek-R1 model failed: {e}, switching to DeepSeek-R1-Distill-Qwen-1.5B...")
-        try:
-            story_llm = LLMChain(
-                llm=HuggingFaceHub(repo_id="deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B", 
-                                   model_kwargs={"temperature":1, "max_length":512}), 
-                prompt=prompt
-            )
-            story = story_llm.predict(scenario=scenario)
-        except Exception as e2:
-            return f"Error generating story: {e2}"
+    models = [
+        "deepseek-ai/DeepSeek-R1",
+        "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B"
+    ]
     
-    return story.split('\n')[-1].strip()
+    for model in models:
+        retry_attempts = 3
+        for attempt in range(retry_attempts):
+            try:
+                story_llm = LLMChain(
+                    llm=HuggingFaceHub(repo_id=model, 
+                                       model_kwargs={"temperature":1, "max_length":512}), 
+                    prompt=prompt
+                )
+                story = story_llm.predict(scenario=scenario)
+                return story.split('\n')[-1].strip()
+            except Exception as e:
+                print(f"Attempt {attempt + 1} failed for {model}: {e}")
+                time.sleep(2**attempt)  # Exponential backoff (2s, 4s, 8s)
+    
+    return "Error: Unable to generate story after multiple attempts."
 
 # Text to Speech Function
 def text2speech(message):
