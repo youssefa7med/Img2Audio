@@ -32,38 +32,18 @@ def img2text_url(image_url):
     except requests.exceptions.RequestException as e:
         return f"Error: {e}"
 
-# Generate Story Function
 def generate_story(scenario):
-    template = """
-    You are a story teller;
-    You can generate a very short story based on a simple narrative, be creative and the story should be between 10 to 50 words;
-    CONTEXT: {scenario}
-    STORY:
-    """
-    prompt = PromptTemplate(template=template, input_variables=["scenario"])
-    
-    models = [
-        "HuggingFaceH4/zephyr-7b-beta",  # Lightweight model
-        "deepseek-ai/DeepSeek-R1",
-        "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B"
-    ]
-    
-    for model in models:
-        retry_attempts = 3
-        for attempt in range(retry_attempts):
-            try:
-                story_llm = LLMChain(
-                    llm=HuggingFaceHub(repo_id=model, 
-                                       model_kwargs={"temperature":1, "max_length":512}), 
-                    prompt=prompt
-                )
-                story = story_llm.predict(scenario=scenario)
-                return story.split('\n')[-1].strip()
-            except Exception as e:
-                print(f"Attempt {attempt + 1} failed for {model}: {e}")
-                time.sleep(2**attempt)  # Exponential backoff (2s, 4s, 8s)
-    
-    return "Error: Unable to generate story after multiple attempts."
+  template = """
+  You are a story teller;
+  You can generate a very short story based on a simple narrative, be creative and the story should be between 10 to 50 words;
+  CONTEXT: {scenario}
+  STORY:
+  """
+  prompt = PromptTemplate(template=template, input_variables=["scenario"])
+  story_llm = LLMChain(llm=HuggingFaceHub(repo_id="deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B", model_kwargs={"temperature":1, "max_length":512}), prompt=prompt)
+  story = story_llm.predict(scenario=scenario)
+  story = story.split('\n')[-1].strip()
+  return story
 
 # Text to Speech Function
 def text2speech(message):
