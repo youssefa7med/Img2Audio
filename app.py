@@ -1,14 +1,14 @@
 import os
 import requests
 import streamlit as st
-from dotenv import load_dotenv
 from transformers import pipeline
 from langchain_community.llms import HuggingFaceHub
 from langchain import PromptTemplate, LLMChain
+from dotenv import load_dotenv
+import time
 
-# Load API Token
+# Load environment variables
 load_dotenv()
-HUGGINGFACE_API_TOKEN = os.getenv("HUGGINGFACEHUB_API_TOKEN")
 
 # Validate Image URL
 def is_valid_image_url(url):
@@ -21,59 +21,51 @@ def is_valid_image_url(url):
 # Image to Text Function
 def img2text_url(image_url):
     API_URL = "https://api-inference.huggingface.co/models/Salesforce/blip-image-captioning-large"
-    headers = {"Authorization": f"Bearer {HUGGINGFACE_API_TOKEN}"}
+    headers = {"Authorization": f"Bearer {os.getenv('HUGGINGFACEHUB_API_TOKEN')}"}
 
-    response = requests.post(API_URL, headers=headers, json={"inputs": image_url})
-    if response.status_code == 200:
-        return response.json()[0].get("generated_text", "No caption generated.")
+    for _ in range(3):  # Retry 3 times in case of API failure
+        response = requests.post(API_URL, headers=headers, json={"inputs": image_url})
+        if response.status_code == 200:
+            return response.json()[0].get("generated_text", "No caption generated.")
+        time.sleep(2)  # Wait before retrying
     return f"Error: {response.status_code}, {response.text}"
 
-# Generate Story Function with Fallback Model
+# Generate Story Function
 def generate_story(scenario):
-    try:
-        template = """
-        You are a story teller;
-        Generate a short, creative story (10-50 words) based on the given narrative.
-        CONTEXT: {scenario}
-        STORY:
-        """
-        prompt = PromptTemplate(template=template, input_variables=["scenario"])
+    template = """
+    You are a story teller;
+    You can generate a very short story based on a simple narrative, be creative and the story should be between 10 to 50 words;
+    CONTEXT: {scenario}
+    STORY:
+    """
+    prompt = PromptTemplate(template=template, input_variables=["scenario"])
+    story_llm = LLMChain(
+        llm=HuggingFaceHub(repo_id="mistralai/Mistral-7B-Instruct", model_kwargs={"temperature": 1, "max_length": 512}),
+        prompt=prompt
+    )
+    return story_llm.predict(scenario=scenario).strip()
 
-        # Primary Model
-        try:
-            story_llm = LLMChain(llm=HuggingFaceHub(
-                repo_id="deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B",
-                model_kwargs={"temperature": 1, "max_length": 512}
-            ), prompt=prompt)
-        except Exception:
-            story_llm = LLMChain(llm=HuggingFaceHub(
-                repo_id="tiiuae/falcon-7b-instruct",
-                model_kwargs={"temperature": 1, "max_length": 512}
-            ), prompt=prompt)
-
-        return story_llm.predict(scenario=scenario).strip()
-    except Exception as e:
-        return f"Error generating story: {str(e)}"
-
-# Text to Speech Function
+# Text to Speech Function (Using Hugging Face API)
 def text2speech(message):
-    API_URL = "https://api-inference.huggingface.co/models/espnet/kan-bayashi_ljspeech_vits"
-    headers = {"Authorization": f"Bearer {HUGGINGFACE_API_TOKEN}"}
-    payload = {'inputs': message}
+    API_URL = "https://api-inference.huggingface.co/models/facebook/mms-tts-eng"
+    headers = {"Authorization": f"Bearer {os.getenv('HUGGINGFACEHUB_API_TOKEN')}"}
+    payload = {"inputs": message}
 
-    response = requests.post(API_URL, headers=headers, json=payload)
-    if response.status_code == 200:
-        audio_path = "audio.flac"
-        with open(audio_path, "wb") as file:
-            file.write(response.content)
-        return audio_path
+    for _ in range(3):  # Retry mechanism
+        response = requests.post(API_URL, headers=headers, json=payload)
+        if response.status_code == 200:
+            audio_path = "audio.flac"
+            with open(audio_path, "wb") as file:
+                file.write(response.content)
+            return audio_path
+        time.sleep(2)  # Wait before retrying
     return f"Error: {response.status_code}, {response.text}"
 
 # Streamlit UI
 def main():
     st.set_page_config(page_title="AI-Powered Story Generator", layout="centered")
     st.title("📖 AI Story Generator from Image URL")
-
+    
     image_url = st.text_input("🔗 Enter Image URL")
 
     if image_url:
