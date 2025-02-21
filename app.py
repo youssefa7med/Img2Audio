@@ -29,6 +29,7 @@ def img2text_url(image_url):
     return f"Error: {response.status_code}, {response.text}"
 
 # Generate Story Function with Fallback Model
+# Generate Story Function with Fallback Model
 def generate_story(scenario):
     try:
         template = """
@@ -51,9 +52,14 @@ def generate_story(scenario):
                 model_kwargs={"temperature": 1, "max_length": 512}
             ), prompt=prompt)
 
-        return story_llm.predict(scenario=scenario).strip()
+        # Extract only the story part
+        full_response = story_llm.predict(scenario=scenario).strip()
+        story_part = full_response.split("STORY:")[-1].strip()  # Get only the generated story
+
+        return story_part
     except Exception as e:
         return f"Error generating story: {str(e)}"
+
 
 # Text to Speech Function
 def text2speech(message):
