@@ -5,7 +5,7 @@ from transformers import pipeline
 from langchain_community.llms import HuggingFaceHub
 from langchain import PromptTemplate, LLMChain
 from dotenv import load_dotenv
-import time
+from gtts import gTTS
 
 # Load environment variables
 load_dotenv()
@@ -23,11 +23,9 @@ def img2text_url(image_url):
     API_URL = "https://api-inference.huggingface.co/models/Salesforce/blip-image-captioning-large"
     headers = {"Authorization": f"Bearer {os.getenv('HUGGINGFACEHUB_API_TOKEN')}"}
 
-    for _ in range(3):  # Retry 3 times in case of API failure
-        response = requests.post(API_URL, headers=headers, json={"inputs": image_url})
-        if response.status_code == 200:
-            return response.json()[0].get("generated_text", "No caption generated.")
-        time.sleep(2)  # Wait before retrying
+    response = requests.post(API_URL, headers=headers, json={"inputs": image_url})
+    if response.status_code == 200:
+        return response.json()[0].get("generated_text", "No caption generated.")
     return f"Error: {response.status_code}, {response.text}"
 
 # Generate Story Function
@@ -45,21 +43,15 @@ def generate_story(scenario):
     )
     return story_llm.predict(scenario=scenario).strip()
 
-# Text to Speech Function (Using Hugging Face API)
+# Text to Speech Function (Using gTTS)
 def text2speech(message):
-    API_URL = "https://api-inference.huggingface.co/models/facebook/mms-tts-eng"
-    headers = {"Authorization": f"Bearer {os.getenv('HUGGINGFACEHUB_API_TOKEN')}"}
-    payload = {"inputs": message}
-
-    for _ in range(3):  # Retry mechanism
-        response = requests.post(API_URL, headers=headers, json=payload)
-        if response.status_code == 200:
-            audio_path = "audio.flac"
-            with open(audio_path, "wb") as file:
-                file.write(response.content)
-            return audio_path
-        time.sleep(2)  # Wait before retrying
-    return f"Error: {response.status_code}, {response.text}"
+    try:
+        tts = gTTS(text=message, lang="en")
+        audio_path = "audio.mp3"
+        tts.save(audio_path)
+        return audio_path
+    except Exception as e:
+        return f"Error: {str(e)}"
 
 # Streamlit UI
 def main():
@@ -99,7 +91,7 @@ def main():
             st.write(story)
 
         with st.expander("🔊 Listen to the Story"):
-            st.audio(audio_file, format="audio/flac")
+            st.audio(audio_file, format="audio/mp3")
 
 if __name__ == "__main__":
     main()
