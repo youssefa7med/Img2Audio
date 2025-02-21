@@ -54,7 +54,7 @@ def generate_story(scenario):
 
         # Extract only the story part
         full_response = story_llm.predict(scenario=scenario).strip()
-        story_part = full_response.split("STORY:")[-1].strip()  # Get only the generated story
+        story_part = full_response.split("\n")[-1].strip()  # Get only the generated story
 
         return story_part
     except Exception as e:
