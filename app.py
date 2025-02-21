@@ -44,12 +44,12 @@ def generate_story(scenario):
         try:
             story_llm = LLMChain(llm=HuggingFaceHub(
                 repo_id="deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B",
-                model_kwargs={"temperature": 1, "max_length": 512}
+                model_kwargs={"temperature": 1, "max_length": 1024}
             ), prompt=prompt)
         except Exception:
             story_llm = LLMChain(llm=HuggingFaceHub(
                 repo_id="tiiuae/falcon-7b-instruct",
-                model_kwargs={"temperature": 1, "max_length": 512}
+                model_kwargs={"temperature": 1, "max_length": 1024}
             ), prompt=prompt)
 
         # Extract only the story part
